@@ -1,49 +1,31 @@
-<script>
+<script lang="ts">
 import { browser } from '$app/environment';
 import { onMount } from 'svelte';
-import client from '$lib/apollo-client';
-import { gql } from '@apollo/client/core';
+import type { HomeData } from '$lib/types';
 
-const HOME_QUERY = gql`
-  query GetHomeContent {
-    pages(where: {name: "ison"}) {
-      nodes {
-        id
-        title
-        content
-        slug
-      }
-    }
-    posts(first: 5) {
-      nodes {
-        id
-        title
-        date
-        excerpt
-        slug
-        categories {
-          nodes {
-            name
-            slug
-          }
-        }
-      }
-    }
-  }
-`;
-
-let homeContent = null;
+let homeData: HomeData | null = null;
 let loading = true;
-let error = null;
+let error: Error | null = null;
+
+const apiUrl = import.meta.env.VITE_WP_API_URL;
 
 onMount(async () => {
   if (browser) {
     try {
-      const result = await client.query({ query: HOME_QUERY });
-      homeContent = result.data;
+      const [pageResponse, postsResponse] = await Promise.all([
+        fetch(`${apiUrl}/wp/v2/pages?slug=ison`),
+        fetch(`${apiUrl}/wp/v2/posts?per_page=5&_embed`)
+      ]);
+      
+      const [pages, posts] = await Promise.all([
+        pageResponse.json(),
+        postsResponse.json()
+      ]);
+
+      homeData = { pages, posts };
       loading = false;
     } catch (e) {
-      error = e;
+      error = e instanceof Error ? e : new Error('An unknown error occurred');
       loading = false;
     }
   }
@@ -54,27 +36,27 @@ onMount(async () => {
   <p>Loading...</p>
 {:else if error}
   <p>Error: {error.message}</p>
-{:else if homeContent}
-  {#if homeContent.pages?.nodes[0]}
-    <h1>{homeContent.pages.nodes[0].title}</h1>
-    {@html homeContent.pages.nodes[0].content}
+{:else if homeData}
+  {#if homeData.pages[0]}
+    <h1>{@html homeData.pages[0].title.rendered}</h1>
+    {@html homeData.pages[0].content.rendered}
   {/if}
 
   <h2>Recent Posts</h2>
-  {#if homeContent.posts?.nodes}
+  {#if homeData.posts.length > 0}
     <ul>
-      {#each homeContent.posts.nodes as post}
+      {#each homeData.posts as post}
         <li>
-          <h3>{post.title}</h3>
+          <h3>{@html post.title.rendered}</h3>
           <p>Published on: {new Date(post.date).toLocaleDateString()}</p>
-          {#if post.categories?.nodes}
+          {#if post._embedded && post._embedded['wp:term']}
             <p>Categories: 
-              {#each post.categories.nodes as category}
+              {#each post._embedded['wp:term'][0] as category}
                 <span>{category.name}</span>
               {/each}
             </p>
           {/if}
-          {@html post.excerpt}
+          {@html post.excerpt.rendered}
           <a href="/news-views/{post.slug}">Read more</a>
         </li>
       {/each}
