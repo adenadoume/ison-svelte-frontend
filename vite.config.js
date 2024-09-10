@@ -6,7 +6,7 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/graphql': {
-				target: 'https://your-wordpress-site.com',
+				target: 'https://ison.gr',
 				changeOrigin: true,
 				secure: false,
 			}
