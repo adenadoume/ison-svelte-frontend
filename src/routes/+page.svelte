@@ -1,7 +1,7 @@
 <script lang="ts">
 import { browser } from '$app/environment';
 import { onMount } from 'svelte';
-import { query } from '$lib/graphql-client';
+import client from '$lib/apollo-client';
 import { gql } from '@apollo/client/core';
 
 const HOME_QUERY = gql`
@@ -47,26 +47,36 @@ let error = null;
 
 onMount(async () => {
   if (browser) {
-    homeContent = query(HOME_QUERY);
+    try {
+      console.log('Fetching data...');
+      const result = await client.query({ query: HOME_QUERY });
+      console.log('Fetch result:', result);
+      homeContent = result.data;
+      loading = false;
+    } catch (e) {
+      console.error('Fetch error:', e);
+      error = e;
+      loading = false;
+    }
   }
 });
 </script>
 
 <svelte:head>
-  {#if $homeContent?.data?.pages?.nodes[0]?.seo}
-    <title>{$homeContent.data.pages.nodes[0].seo.title}</title>
-    <meta name="description" content={$homeContent.data.pages.nodes[0].seo.metaDesc} />
-    {@html $homeContent.data.pages.nodes[0].seo.fullHead}
+  {#if homeContent?.pages?.nodes[0]?.seo}
+    <title>{homeContent.pages.nodes[0].seo.title}</title>
+    <meta name="description" content={homeContent.pages.nodes[0].seo.metaDesc} />
+    {@html homeContent.pages.nodes[0].seo.fullHead}
   {/if}
 </svelte:head>
 
-{#if $homeContent?.loading}
+{#if loading}
   <p>Loading...</p>
-{:else if $homeContent?.error}
-  <p>Error: {$homeContent.error.message}</p>
-{:else if $homeContent?.data}
-  {@const homePage = $homeContent.data.pages.nodes[0]}
-  {@const recentPosts = $homeContent.data.posts.nodes}
+{:else if error}
+  <p>Error: {error.message}</p>
+{:else if homeContent}
+  {@const homePage = homeContent.pages.nodes[0]}
+  {@const recentPosts = homeContent.posts.nodes}
 
   <h1>{homePage.title}</h1>
   {@html homePage.content}
