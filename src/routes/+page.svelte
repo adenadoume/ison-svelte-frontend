@@ -6,7 +6,7 @@ import { gql } from '@apollo/client/core';
 
 const HOME_QUERY = gql`
   query GetHomeContent {
-    pages(where: {name: "home"}) {
+    pages(where: {name: "ison"}) {
       nodes {
         id
         title
