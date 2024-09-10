@@ -1,7 +1,7 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client/core';
 
 const client = new ApolloClient({
-  uri: '/graphql', // Use the relative path
+  uri: 'https://ison.gr/graphql', // Replace with your actual GraphQL endpoint
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {

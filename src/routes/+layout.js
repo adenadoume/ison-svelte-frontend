@@ -1,1 +1,1 @@
-// This file can be empty or removed if not needed for other purposes
+// This file can remain empty if not needed for other purposes

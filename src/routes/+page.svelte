@@ -41,20 +41,17 @@ const HOME_QUERY = gql`
   }
 `;
 
-let homeContent;
+let homeContent = null;
 let loading = true;
 let error = null;
 
 onMount(async () => {
   if (browser) {
     try {
-      console.log('Fetching data...');
       const result = await client.query({ query: HOME_QUERY });
-      console.log('Fetch result:', result);
       homeContent = result.data;
       loading = false;
     } catch (e) {
-      console.error('Fetch error:', e);
       error = e;
       loading = false;
     }
@@ -66,7 +63,9 @@ onMount(async () => {
   {#if homeContent?.pages?.nodes[0]?.seo}
     <title>{homeContent.pages.nodes[0].seo.title}</title>
     <meta name="description" content={homeContent.pages.nodes[0].seo.metaDesc} />
-    {@html homeContent.pages.nodes[0].seo.fullHead}
+    {#if homeContent.pages.nodes[0].seo.fullHead}
+      {@html homeContent.pages.nodes[0].seo.fullHead}
+    {/if}
   {/if}
 </svelte:head>
 
@@ -75,28 +74,31 @@ onMount(async () => {
 {:else if error}
   <p>Error: {error.message}</p>
 {:else if homeContent}
-  {@const homePage = homeContent.pages.nodes[0]}
-  {@const recentPosts = homeContent.posts.nodes}
-
-  <h1>{homePage.title}</h1>
-  {@html homePage.content}
+  {#if homeContent.pages?.nodes[0]}
+    <h1>{homeContent.pages.nodes[0].title}</h1>
+    {@html homeContent.pages.nodes[0].content}
+  {/if}
 
   <h2>Recent Posts</h2>
-  <ul>
-    {#each recentPosts as post}
-      <li>
-        <h3>{post.title}</h3>
-        <p>Published on: {new Date(post.date).toLocaleDateString()}</p>
-        <p>Categories: 
-          {#each post.categories.nodes as category}
-            <span>{category.name}</span>
-          {/each}
-        </p>
-        {@html post.excerpt}
-        <a href="/news-views/{post.slug}">Read more</a>
-      </li>
-    {/each}
-  </ul>
+  {#if homeContent.posts?.nodes}
+    <ul>
+      {#each homeContent.posts.nodes as post}
+        <li>
+          <h3>{post.title}</h3>
+          <p>Published on: {new Date(post.date).toLocaleDateString()}</p>
+          {#if post.categories?.nodes}
+            <p>Categories: 
+              {#each post.categories.nodes as category}
+                <span>{category.name}</span>
+              {/each}
+            </p>
+          {/if}
+          {@html post.excerpt}
+          <a href="/news-views/{post.slug}">Read more</a>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 {/if}
 
 <style>
